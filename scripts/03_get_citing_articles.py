@@ -100,10 +100,31 @@ while True:
                 xpath = "//button[contains(., ' Search ')]"
                 elem = browser.find_element(By.XPATH, xpath)
                 elem.click()
+
                 # FIXME: it seems popup randomly
                 try:
                     loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
-                    wait = WebDriverWait(browser, 3)
+                    wait = WebDriverWait(browser, 2)
+                    wait.until(EC.visibility_of_element_located(loc))
+                    # click close popup
+                    xpath = "//button[@class='_pendo-close-guide']"
+                    elem = browser.find_element(By.XPATH, xpath)
+                    elem.click()
+                except Exception as e:
+                    print(e)
+
+                loc = (By.XPATH,"//div[text()=' Citations ']")
+                wait = WebDriverWait(browser, 5)
+                wait.until(EC.presence_of_element_located(loc))
+                # click 'Citations'
+                xpath = "//div[text()=' Citations ']"
+                elem = browser.find_element(By.XPATH, xpath)
+                elem.click()
+
+                # FIXME: it seems popup randomly
+                try:
+                    loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
+                    wait = WebDriverWait(browser, 2)
                     wait.until(EC.visibility_of_element_located(loc))
                     # click close popup
                     xpath = "//button[@class='_pendo-close-guide']"
