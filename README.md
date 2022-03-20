@@ -2,7 +2,11 @@
 
 ### Workflow
 
-1. [Get Control Group Articles](scripts/01_get_control_articles.py):
+1. [Get retracted articles and citations to retracted articles](scripts/01_get_retracted_articles.py)
+
+2. [Merge retracted articles and citations to retracted articles](scripts/02_merge_retracted_articles.ipynb)
+
+3. [Get Control Group Articles](scripts/03_get_control_articles.py):
     
     - Iterates over [retracted articles](data/new_retracted_articles.csv) and get the day (PD), month (PD), year (PY), and research area (WC). 
     
@@ -34,11 +38,11 @@
 
     - Selects "full record" and exports all the search results. Save the file as search_results/rowid.xls where rowid is the rowid of the [retracted articles](data/new_retracted_articles.csv) being queried.
 
-2. [Choose two records at random](scripts/02_choose_records_at_random.py) 
+4. [Choose two records at random](scripts/04_choose_records_at_random.py) 
 
     Selects two records at random from the search results. And then save them to a separate file (selected_records.csv) along with the rowid column. (Results from each query will be concatenated to selected_records.csv) 
 
-3. [Get citing articles](scripts/03_get_citing_articles.py)
+5. [Get citing articles](scripts/05_get_citing_articles.py)
     
     For each of the two records:
     * Searches for the title (TI), e.g., ```TI=(Mathematical modeling of planar cell polarity to understand domineering nonautonomy)```
@@ -51,11 +55,3 @@
 2. Chrome (version 92 or newer)
 3. Make sure the chromedriver.exe (download it from https://sites.google.com/chromium.org/driver/) is at the same path as the main script while running
 
-
-# Scripts
-
-script 1 = get retracted articles and citations to retracted articles
-script 2 = merge retracted articles and  citations to retracted articles from scirpt 1
-script 3 = get full list of control group articles
-script 4 = select 2 at random
-script 5 = get citations to control group articles
