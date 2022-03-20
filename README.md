@@ -51,3 +51,11 @@
 2. Chrome (version 92 or newer)
 3. Make sure the chromedriver.exe (download it from https://sites.google.com/chromium.org/driver/) is at the same path as the main script while running
 
+
+# Scripts
+
+script 1 = get retracted articles and citations to retracted articles
+script 2 = merge retracted articles and  citations to retracted articles from scirpt 1
+script 3 = get full list of control group articles
+script 4 = select 2 at random
+script 5 = get citations to control group articles
