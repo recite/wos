@@ -5,6 +5,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.command import Command
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.keys import Keys
+
 import pandas as pd
 import time
 import os
@@ -14,7 +16,7 @@ DOWNLOAD_PATH = os.getcwd() + '/retracted_articles'
 WEB_SCIENCE_USERNAME = ""
 WEB_SCIENCE_PASSWORD = ""
 LOGIN_URL = ('https://ezpa.library.ualberta.ca/ezpAuthen.cgi'
-             '?url=https://www.webofscience.com/wos/alldb/basic-search')
+             '?url=https://www.webofscience.com/wos/woscc/basic-search')
 
 dt = pd.read_csv('../data/retraction_notices11622_refactored.csv',
                  usecols=['Source Title', 'new_title'])
@@ -32,14 +34,15 @@ while True:
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")  # linux only
-        options.add_argument("--headless")
+        #options.add_argument("--headless")
         options.add_argument("--remote-debugging-port=9222")
-        options.add_argument("--window-size=1280,1024")
+        #options.add_argument("--window-size=1280,1024")
+        options.add_argument("--window-size=1024,760")
         default_download_path = {"download.default_directory": DOWNLOAD_PATH}
         options.add_experimental_option("prefs", default_download_path)
         browser = webdriver.Chrome(executable_path=chrome_driver,
                                    options=options)
-        browser.implicitly_wait(15)
+        browser.implicitly_wait(3)
         browser.get(LOGIN_URL)
         elem = browser.find_element(By.CSS_SELECTOR, "input[name=user]")
         elem.send_keys(WEB_SCIENCE_USERNAME)
@@ -49,9 +52,25 @@ while True:
         elem.submit()
 
         try:
-            loc = (By.XPATH, "//button[@id='onetrust-accept-btn-handler']")
-            wait = WebDriverWait(browser, 30)
+            print('Wait for popup')
+            loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
+            wait = WebDriverWait(browser, 30, 2)
             wait.until(EC.visibility_of_element_located(loc))
+            print("Close guide popup")
+            # close popup guide
+            xpath = "//button[@class='_pendo-close-guide']"
+            elem = browser.find_element(By.XPATH, xpath)
+            elem.click()
+            print('Click on popup')
+        except Exception as e:
+            print(e)
+
+        try:
+            print('Wait for cookie popup')
+            loc = (By.XPATH, "//button[@id='onetrust-accept-btn-handler']")
+            wait = WebDriverWait(browser, 30, 2)
+            wait.until(EC.visibility_of_element_located(loc))
+            print("Close Cookie popup")
             # close cookie popup
             xpath = "//button[@id='onetrust-accept-btn-handler']"
             elem = browser.find_element(By.XPATH, xpath)
@@ -59,18 +78,8 @@ while True:
         except Exception as e:
             print(e)
 
-        try:
-            loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
-            wait = WebDriverWait(browser, 30)
-            wait.until(EC.visibility_of_element_located(loc))
-            # close popup guide
-            xpath = "//button[@class='_pendo-close-guide']"
-            elem = browser.find_element(By.XPATH, xpath)
-            elem.click()
-        except Exception as e:
-            print(e)
-
-        for i in range(0, 100):
+        first_search = True
+        for i in range(0, 200):
             if start >= len(dt):
                 break
             a = dt['new_title'][start]
@@ -89,7 +98,8 @@ while True:
 
                 # Wait until the `advancedSearchInputArea` element appear
                 # (up to 5 seconds)
-                wait = WebDriverWait(browser, 5)
+                print('Wait for Advance Search input Area') 
+                wait = WebDriverWait(browser, 5, 1)
                 loc = (By.ID, "advancedSearchInputArea")
                 wait.until(EC.presence_of_element_located(loc))
                 # enter the query string in textarea 
@@ -103,49 +113,110 @@ while True:
                 xpath = "//button[contains(., ' Search ')]"
                 elem = browser.find_element(By.XPATH, xpath)
                 elem.click()
+                print('Click on search')
 
-                # FIXME: it seems popup randomly
-                try:
-                    loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
-                    wait = WebDriverWait(browser, 2)
-                    wait.until(EC.visibility_of_element_located(loc))
-                    # click close popup
-                    xpath = "//button[@class='_pendo-close-guide']"
-                    elem = browser.find_element(By.XPATH, xpath)
-                    elem.click()
-                except Exception as e:
-                    print(e)
+                if first_search:
+                    # FIXME: it seems popup randomly
+                    try:
+                        print('Wait for popup')
+                        loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
+                        wait = WebDriverWait(browser, 2, 1)
+                        wait.until(EC.visibility_of_element_located(loc))
+                        # click close popup
+                        xpath = "//button[@class='_pendo-close-guide']"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
+                        print('Click on popup')
+                        first_search = False
+                    except Exception as e:
+                        print(e)
 
                 xpath = "//span[text()='Sort by:']/following-sibling::span"
+                try:
+                    print('Wait for search results')
+                    loc = (By.XPATH, xpath)
+                    wait = WebDriverWait(browser, 2, 1)
+                    wait.until(EC.presence_of_element_located(loc))
+                except Exception as e:
+                    print('No search results')
+                    try:
+                        txt = "< BACK TO BASIC SEARCHES"
+                        elem = browser.find_element(By.LINK_TEXT, txt)
+                        elem.click()
+                    except Exception as e:
+                        print(e)
+                    start += 1
+                    continue
+
                 elem = browser.find_element(By.XPATH, xpath)
                 if elem.text != 'Date: oldest first':
-                    # click "Sort by:"
-                    xpath = "//span[text()='Sort by:']"
-                    elem = browser.find_element(By.XPATH, xpath)
-                    elem.click()
-                    # select "Date: oldest first"
-                    xpath = "//span[text()='Date: oldest first']"
-                    elem = browser.find_element(By.XPATH, xpath)
-                    elem.click()
+                    try:
+                        # click "Sort by:"
+                        xpath = "//span[text()='Sort by:']"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
+                        # select "Date: oldest first"
+                        xpath = "//span[text()='Date: oldest first']"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
+                    except Exception as e:
+                        print(e)
+                        # close popup guide
+                        xpath = "//button[@class='_pendo-close-guide']"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
+                        print('Click on popup')
+                        # click "Sort by:"
+                        xpath = "//span[text()='Sort by:']"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
+                        # select "Date: oldest first"
+                        xpath = "//span[text()='Date: oldest first']"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
 
                 # select first record
                 xpath = "//app-record//mat-checkbox"
                 elems = browser.find_elements(By.XPATH, xpath)
                 elems[0].click()
 
-                loc = (By.XPATH, "//button[contains(., ' Export ')]")
-                wait = WebDriverWait(browser, 5)
+                print('Wait for Export')
+                loc = (By.XPATH, "//button[contains(., 'Export')]")
+                wait = WebDriverWait(browser, 5, 1)
                 wait.until(EC.presence_of_element_located(loc))
                 # click 'Export' dropdown button
                 xpath = "//button[contains(., 'Export')]"
                 elem = browser.find_element(By.XPATH, xpath)
                 elem.click()
+                print('Click on export')
 
+                print('Wait for Tab delimited file')
                 xpath = "//button[contains(., 'Tab delimited file')]"
                 loc = (By.XPATH, xpath)
-                wait = WebDriverWait(browser, 5)
+                wait = WebDriverWait(browser, 5, 1)
                 wait.until(EC.presence_of_element_located(loc))
-                xpath = "//button[contains(., ' Tab delimited file ')]"
+                try:
+                    xpath = "//button[contains(., 'Tab delimited file')]"
+                    elem = browser.find_element(By.XPATH, xpath)
+                    elem.click()
+                    print('Click on Tab delimeted file')
+                except Exception as e:
+                    print(e)
+                    webdriver.ActionChains(browser).send_keys(Keys.ESCAPE).perform()
+                    elem.click()
+                    print('Click on Tab delimted file (again)')
+
+                print('Wait for Export option')
+                xpath = "//button[contains(., 'Author, Title, Source')]"
+                loc = (By.XPATH, xpath)
+                wait = WebDriverWait(browser, 5, 1)
+                wait.until(EC.presence_of_element_located(loc))
+                xpath = "//button[contains(., 'Author, Title, Source')]"
+                elem = browser.find_element(By.XPATH, xpath)
+                elem.click()
+                print('Click on Export option')
+                #choose 'Full Record'
+                xpath = "//span[contains(., 'Full Record')]"
                 elem = browser.find_element(By.XPATH, xpath)
                 elem.click()
 
@@ -157,7 +228,7 @@ while True:
                 dfn = DOWNLOAD_PATH + '/' + 'savedrecs.txt'
                 r = 0
                 while (r < 20):
-                    print('Downloading...')
+                    print('Download Article...')
                     time.sleep(1)
                     if os.path.exists(dfn):
                         shutil.move(dfn, ofn)
@@ -171,37 +242,52 @@ while True:
 
                 if not os.path.exists(ofn2):
                     # click 'Citations'
-                    xpath = "//div[contains(@class, 'citations')]/a"
-                    elem = browser.find_element(By.XPATH, xpath)
-                    elem.click()
-
-                    # FIXME: it seems popup randomly
                     try:
-                        loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
-                        wait = WebDriverWait(browser, 2)
-                        wait.until(EC.visibility_of_element_located(loc))
-                        # click close popup
-                        xpath = "//button[@class='_pendo-close-guide']"
+                        print('Wait for Citations')
+                        xpath = "//div[contains(@class, 'citations')]"
+                        loc = (By.XPATH, xpath)
+                        wait = WebDriverWait(browser, 2, 1)
+                        wait.until(EC.presence_of_element_located(loc))
+                    except Exception as e:
+                        print(e)
+                        print('No citations')
+                        start += 1
+                        continue
+                    try:
+                        xpath = "//div[contains(@class, 'citations')]/a"
                         elem = browser.find_element(By.XPATH, xpath)
                         elem.click()
                     except Exception as e:
                         print(e)
+                        print('No citations')
+                        start += 1
+                        continue
 
-                    loc = (By.XPATH, "//button[contains(., ' Export ')]")
-                    wait = WebDriverWait(browser, 5)
+                    print('Wait for Export citations')
+                    loc = (By.XPATH, "//button[contains(., 'Export')]")
+                    wait = WebDriverWait(browser, 5, 1)
                     wait.until(EC.presence_of_element_located(loc))
                     # click 'Export' dropdown button
                     xpath = "//button[contains(., 'Export')]"
                     elem = browser.find_element(By.XPATH, xpath)
                     elem.click()
+                    print('Click on Export citations')
 
+                    print('Wait for Tab delimited file')
                     xpath = "//button[contains(., 'Tab delimited file')]"
                     loc = (By.XPATH, xpath)
-                    wait = WebDriverWait(browser, 5)
+                    wait = WebDriverWait(browser, 5, 1)
                     wait.until(EC.presence_of_element_located(loc))
-                    xpath = "//button[contains(., ' Tab delimited file ')]"
-                    elem = browser.find_element(By.XPATH, xpath)
-                    elem.click()
+                    try:
+                        xpath = "//button[contains(., 'Tab delimited file')]"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
+                        print('Click on Tab delimted file')
+                    except Exception as e:
+                        print(e)
+                        webdriver.ActionChains(browser).send_keys(Keys.ESCAPE).perform()
+                        elem.click()
+                        print('Click on Tab delimted file (again)')
 
                     # tick to 'Records from:'
                     xpath = "//span[contains(., 'Records from:')]"
@@ -216,7 +302,7 @@ while True:
                     dfn = DOWNLOAD_PATH + '/' + 'savedrecs.txt'
                     r = 0
                     while (r < 20):
-                        print('Downloading...')
+                        print('Download Citations...')
                         time.sleep(1)
                         if os.path.exists(dfn):
                             shutil.move(dfn, ofn2)
@@ -236,7 +322,7 @@ while True:
                     elem.click()
                     print('Wait for popup')
                     loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
-                    wait = WebDriverWait(browser, 3)
+                    wait = WebDriverWait(browser, 3, 1)
                     wait.until(EC.visibility_of_element_located(loc))
                     # close popup guide
                     xpath = "//button[@class='_pendo-close-guide']"
@@ -248,5 +334,6 @@ while True:
             start += 1
     except Exception as e:
         print(e)
+        time.sleep(300)
     finally:
         browser.quit()

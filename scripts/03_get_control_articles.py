@@ -19,7 +19,7 @@ LOGIN_URL = ('https://ezpa.library.ualberta.ca/ezpAuthen.cgi'
              '?url=https://www.webofscience.com/wos/alldb/basic-search')
 
 # Create query strings
-dt = pd.read_excel(os.getcwd() + '/new_retracted_articles.xlsx')
+dt = pd.read_csv(os.getcwd() + '/retracted_articles.csv.gz')
 li_mon = []
 for i in dt.PD:
     if (type(i) == str) & (str(i).title() in list(calendar.month_abbr)):
@@ -36,7 +36,8 @@ for i in dt.PD:
     else:
         li_date.append(1)
 dt['date'] = li_date
-dt['start'] = (dt.PY.astype(str) + '-' + dt.month.astype(str) + '-'
+dt.dropna(subset=['PY'], inplace=True)
+dt['start'] = (dt.PY.astype(int).astype(str)  + '-' + dt.month.astype(str) + '-'
                + dt.date.astype(str))
 
 li_date_end = []
@@ -46,7 +47,7 @@ for a, b in zip(dt.PD, dt.start):
     else:
         li_date_end.append(pd.Period(b).days_in_month)
 dt['date_end'] = li_date_end
-dt['end'] = (dt.PY.astype(str) + '-' + dt.month.astype(str) + '-'
+dt['end'] = (dt.PY.astype(int).astype(str) + '-' + dt.month.astype(str) + '-'
              + dt.date_end.astype(str))
 
 dt['start'] = dt['start'].apply(pd.to_datetime)
@@ -69,14 +70,15 @@ while True:
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")  # linux only
-        options.add_argument("--headless")
+        #options.add_argument("--headless")
         options.add_argument("--remote-debugging-port=9222")
-        options.add_argument("--window-size=1280,1024")
+        #options.add_argument("--window-size=1280,1024")
+        options.add_argument("--window-size=1024,760")
         default_download_path = {"download.default_directory": DOWNLOAD_PATH}
         options.add_experimental_option("prefs", default_download_path)
         browser = webdriver.Chrome(executable_path=chrome_driver,
                                    options=options)
-        browser.implicitly_wait(15)
+        browser.implicitly_wait(5)
         browser.get(LOGIN_URL)
         elem = browser.find_element(By.CSS_SELECTOR, "input[name=user]")
         elem.send_keys(WEB_SCIENCE_USERNAME)
@@ -86,27 +88,33 @@ while True:
         elem.submit()
 
         try:
-            loc = (By.XPATH, "//button[@id='onetrust-accept-btn-handler']")
-            wait = WebDriverWait(browser, 30)
+            print('Wait for popup')
+            loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
+            wait = WebDriverWait(browser, 30, 2)
             wait.until(EC.visibility_of_element_located(loc))
-            # close cookies popup
+            print('Close guide popup')
+            # close popup guide
+            xpath = "//button[@class='_pendo-close-guide']"
+            elem = browser.find_element(By.XPATH, xpath)
+            elem.click()
+            print('Click on popup')
+        except Exception as e:
+            print(e)
+
+        try:
+            print('Wait for cookie popup')
+            loc = (By.XPATH, "//button[@id='onetrust-accept-btn-handler']")
+            wait = WebDriverWait(browser, 30, 2)
+            wait.until(EC.visibility_of_element_located(loc))
+            print('Close Cookie popup')
+            # close cookie popup
             xpath = "//button[@id='onetrust-accept-btn-handler']"
             elem = browser.find_element(By.XPATH, xpath)
             elem.click()
         except Exception as e:
             print(e)
 
-        try:
-            loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
-            wait = WebDriverWait(browser, 30)
-            wait.until(EC.visibility_of_element_located(loc))
-            # close popup guide
-            xpath = "//button[@class='_pendo-close-guide']"
-            elem = browser.find_element(By.XPATH, xpath)
-            elem.click()
-        except Exception as e:
-            print(e)
-
+        first_search = True
         for i in range(0, 100):
             print(start)
             if start >= len(dt):
@@ -137,17 +145,21 @@ while True:
                 elem = browser.find_element(By.XPATH, xpath)
                 elem.click()
 
-                # FIXME: it seems popup randomly
-                try:
-                    loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
-                    wait = WebDriverWait(browser, 3)
-                    wait.until(EC.visibility_of_element_located(loc))
-                    # click close popup
-                    xpath = "//button[@class='_pendo-close-guide']"
-                    elem = browser.find_element(By.XPATH, xpath)
-                    elem.click()
-                except Exception as e:
-                    print(e)
+                if first_search:
+                    # FIXME: it seems popup randomly
+                    try:
+                        print('Wait for popup')
+                        loc = (By.XPATH, "//button[@class='_pendo-close-guide']")
+                        wait = WebDriverWait(browser, 2, 1)
+                        wait.until(EC.visibility_of_element_located(loc))
+                        # click close popup
+                        xpath = "//button[@class='_pendo-close-guide']"
+                        elem = browser.find_element(By.XPATH, xpath)
+                        elem.click()
+                        print('Click on popup')
+                        first_search = False
+                    except Exception as e:
+                        print(e)
 
                 loc = (By.XPATH, "//button[contains(., ' Export ')]")
                 wait = WebDriverWait(browser, 5)

@@ -24,7 +24,7 @@ adf.columns
 adf.reset_index(drop=True, inplace=True)
 print('Number of articles from search results:', len(adf))
 
-idf = pd.read_excel('./new_retracted_articles.xlsx')
+idf = pd.read_csv('retracted_articles.csv.gz')
 print('Number of articles in the input data:', len(idf))
 
 adf.drop(adf[adf['UT (Unique ID)'].isin(idf.UT)].index, inplace=True)
