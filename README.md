@@ -2,13 +2,20 @@
 
 ### Workflow
 
-1. [Get retracted articles and citations to retracted articles](scripts/01_get_retracted_articles.py)
+1. Get retraction notices
+    - select the title field and search retract*
+    - filter results to "Retractions"
+    - export all results with Author, Source, Title, and Abstract selected
 
-2. [Merge retracted articles and citations to retracted articles](scripts/02_merge_retracted_articles.ipynb)
+2. Clean retraction notices file
 
-3. [Get Control Group Articles](scripts/03_get_control_articles.py):
+3. [Get retracted articles and citations to retracted articles](scripts/01_get_retracted_articles.py)
+
+4. [Merge retracted articles and citations to retracted articles](scripts/02_merge_retracted_articles.ipynb)
+
+5. [Get Control Group Articles](scripts/03_get_control_articles.py):
     
-    - Iterates over [retracted articles](data/new_retracted_articles.csv) and get the day (PD), month (PD), year (PY), and research area (WC). 
+    - use the output of #3 and iterate over [retracted articles](data/new_retracted_articles.csv) and get the day (PD), month (PD), year (PY), and research area (WC). 
     
     - Creates a query string of the following format:
 
@@ -36,14 +43,15 @@
 
     - Goes to www.webofscience.com and clicks on advanced search and parameters and enters the query string
 
-    - Selects "full record" and exports all the search results. Save the file as search_results/rowid.xls where rowid is the rowid of the [retracted articles](data/new_retracted_articles.csv) being queried.
+    - exports all search results as an excel file. Save the file as search_results/rowid.xls where rowid is the rowid of the [retracted articles](data/new_retracted_articles.csv) being queried.
 
-4. [Choose two records at random](scripts/04_choose_records_at_random.py) 
+6. [Choose two records at random](scripts/04_choose_records_at_random.py) 
 
     Selects two records at random from the search results. And then save them to a separate file (selected_records.csv) along with the rowid column. (Results from each query will be concatenated to selected_records.csv) 
 
-5. [Get citing articles](scripts/05_get_citing_articles.py)
+7. [Get articles that cite control group articles](scripts/05_get_citing_articles.py)
     
+    - using the output from #6
     For each of the two records:
     * Searches for the title (TI), e.g., ```TI=(Mathematical modeling of planar cell polarity to understand domineering nonautonomy)```
     * Clicks on the records citations
